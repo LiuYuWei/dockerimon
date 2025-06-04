@@ -36,7 +36,7 @@ Dockerimon is a container monitoring platform built on Google Firebase Studio. B
 
 1. **Clone the Repository**
     ```bash
-    git clone https://github.com/YourOrg/dockerimon.git
+    git clone https://github.com/LiuYuWei/dockerimon.git
     cd dockerimon
     ```
 
