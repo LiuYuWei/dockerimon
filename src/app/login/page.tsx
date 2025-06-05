@@ -7,7 +7,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Label } from "@/components/ui/label"; // Label not used directly in form but good to keep
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useAuth } from '@/hooks/useAuth';
@@ -22,8 +22,11 @@ const loginSchema = z.object({
 
 type LoginFormValues = z.infer<typeof loginSchema>;
 
+const DEFAULT_ADMIN_EMAIL = "admin@dockerimon.com";
+const DEFAULT_ADMIN_PASSWORD = "password";
+
 export default function LoginPage() {
-  const { login } = useAuth();
+  const { login, isLoading: authIsLoading, isAuthenticated } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
 
@@ -34,11 +37,35 @@ export default function LoginPage() {
       password: "",
     },
   });
+  
+  React.useEffect(() => {
+    if (!authIsLoading && isAuthenticated) {
+      router.push('/');
+    }
+  }, [authIsLoading, isAuthenticated, router]);
+
 
   const onSubmit = (data: LoginFormValues) => {
-    // Simulate login
-    if (data.email === "admin@dockerimon.com" && data.password === "password") {
-      login({ name: "Admin User", email: data.email });
+    let expectedPassword = DEFAULT_ADMIN_PASSWORD;
+    let storedUser = null;
+
+    try {
+      const storedAuth = localStorage.getItem('dockerimonAuth');
+      if (storedAuth) {
+        const parsedAuth = JSON.parse(storedAuth);
+        if (parsedAuth.user && parsedAuth.user.email === data.email && parsedAuth.user.password) {
+          storedUser = parsedAuth.user;
+          expectedPassword = parsedAuth.user.password;
+        }
+      }
+    } catch (e) {
+      console.error("Error reading auth from local storage", e);
+      // Fallback to default if localStorage is corrupted or inaccessible
+    }
+
+    if (data.email === DEFAULT_ADMIN_EMAIL && data.password === expectedPassword) {
+      const userName = storedUser?.name || "Admin User"; // Use stored name if available
+      login({ name: userName, email: data.email }, data.password); // Pass the password used for login
       router.push('/');
       toast({
         title: "Login Successful",
@@ -50,9 +77,23 @@ export default function LoginPage() {
         title: "Login Failed",
         description: "Invalid email or password.",
       });
-      form.setError("root", { message: "Invalid email or password."})
+      form.setError("root", { message: "Invalid email or password." })
     }
   };
+  
+  // If already authenticated and not loading, redirect away from login
+  if (!authIsLoading && isAuthenticated) {
+    return null; // Or a loading spinner while redirecting
+  }
+  // If auth is loading, show nothing or a minimal loader to prevent flash of login form
+  if (authIsLoading) {
+     return (
+        <div className="flex min-h-screen flex-col items-center justify-center bg-background p-4">
+            <PackageSearch size={64} className="text-primary animate-pulse" />
+        </div>
+     );
+  }
+
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-background p-4">

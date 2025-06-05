@@ -9,15 +9,16 @@ import { Skeleton } from '@/components/ui/skeleton'; // For loading state
 interface User {
   name: string;
   email: string;
+  password?: string; // Password is now part of the user object for local storage
 }
 
 interface AuthContextType {
   isAuthenticated: boolean;
   user: User | null;
   isLoading: boolean;
-  login: (userData: User) => void;
+  login: (userData: User, passwordUsed: string) => void; // login now takes password used
   logout: () => void;
-  updateUser: (newUserData: Partial<User>) => void;
+  updateUser: (newUserData: Partial<User> & { newPassword?: string }) => void;
 }
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -29,7 +30,7 @@ interface AuthProviderProps {
 export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [user, setUser] = useState<User | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
-  const [isLoading, setIsLoading] = useState(true); // Start with loading true
+  const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
   const pathname = usePathname();
 
@@ -39,13 +40,13 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       if (storedAuth) {
         const parsedAuth = JSON.parse(storedAuth);
         if (parsedAuth.isAuthenticated && parsedAuth.user) {
-          setUser(parsedAuth.user);
+          setUser(parsedAuth.user); // User object from localStorage might contain the password
           setIsAuthenticated(true);
         }
       }
     } catch (error) {
       console.error("Failed to parse auth data from localStorage", error);
-      localStorage.removeItem('dockerimonAuth'); // Clear corrupted data
+      localStorage.removeItem('dockerimonAuth');
     }
     setIsLoading(false);
   }, []);
@@ -56,23 +57,31 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     }
   }, [isAuthenticated, isLoading, router, pathname]);
 
-  const login = useCallback((userData: User) => {
-    setUser(userData);
+  const login = useCallback((userData: User, passwordUsed: string) => {
+    const userToStore: User = { ...userData, password: passwordUsed };
+    setUser(userToStore);
     setIsAuthenticated(true);
-    localStorage.setItem('dockerimonAuth', JSON.stringify({ isAuthenticated: true, user: userData }));
+    localStorage.setItem('dockerimonAuth', JSON.stringify({ isAuthenticated: true, user: userToStore }));
   }, []);
 
   const logout = useCallback(() => {
     setUser(null);
     setIsAuthenticated(false);
-    localStorage.removeItem('dockerimonAuth');
+    // localStorage.removeItem('dockerimonAuth'); // <-- This line is removed/commented out
     router.push('/login');
   }, [router]);
   
-  const updateUser = useCallback((newUserData: Partial<User>) => {
+  const updateUser = useCallback((newUserData: Partial<User> & { newPassword?: string }) => {
     setUser(prevUser => {
       if (prevUser) {
-        const updatedUser = { ...prevUser, ...newUserData };
+        const updatedUser: User = { 
+          ...prevUser, 
+          name: newUserData.name || prevUser.name,
+          email: newUserData.email || prevUser.email,
+        };
+        if (newUserData.newPassword) {
+          updatedUser.password = newUserData.newPassword;
+        }
         localStorage.setItem('dockerimonAuth', JSON.stringify({ isAuthenticated: true, user: updatedUser }));
         return updatedUser;
       }
@@ -82,7 +91,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
 
   if (isLoading) {
-    // Basic full-page skeleton loader
     return (
       <div className="flex flex-col min-h-screen">
         <header className="h-16 bg-muted/40 border-b p-4 flex items-center">
@@ -105,10 +113,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     );
   }
   
-  // If not authenticated and not on login page, children won't render due to redirect
-  // This prevents flash of content before redirect.
   if (!isAuthenticated && pathname !== '/login') {
-     return null; // Or a more specific loading/redirecting indicator
+     return null;
   }
 
 

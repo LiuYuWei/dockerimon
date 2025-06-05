@@ -29,6 +29,7 @@ import {
   Layers, 
   HardDrive, 
   TerminalSquare,
+  Combine,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Dialog, DialogTrigger } from "@/components/ui/dialog";
@@ -47,6 +48,7 @@ const navItems = [
   { href: "/volumes", label: "Volumes", icon: HardDrive },
   { href: "/logs", label: "Logs", icon: FileText },
   { href: "/actions", label: "Actions", icon: TerminalSquare },
+  { href: "/compose", label: "Compose", icon: Combine },
 ];
 
 const getInitials = (name: string) => {
@@ -92,6 +94,7 @@ export function AppSidebar() {
                 <div className="h-8 bg-muted rounded w-full opacity-50"></div>
                 <div className="h-8 bg-muted rounded w-full opacity-50"></div>
                 <div className="h-8 bg-muted rounded w-full opacity-50"></div>
+                <div className="h-8 bg-muted rounded w-full opacity-50"></div>
                 <div className="h-8 bg-muted rounded w-full opacity-50"></div> 
             </SidebarContent>
             <SidebarFooter className="p-2 mt-auto border-t border-sidebar-border">
@@ -120,6 +123,7 @@ export function AppSidebar() {
             <h1 className="text-xl font-semibold text-sidebar-foreground font-headline">
               Dockerimon
             </h1>
+            <span className="text-xs text-sidebar-foreground/70 -mt-0.5">Preview Edition</span>
           </div>
         </div>
       </SidebarHeader>
